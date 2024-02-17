@@ -5,6 +5,8 @@ import SignUp from './components/SignUp.tsx';
 import Home from './components/Home.tsx';
 import NavigationBar from './components/NavigationBar.tsx';
 import Interview from './components/Interview.tsx';
+import store from './store/ConfigureStore.js';
+import { Provider } from 'react-redux'
 function App() {
   // Get the current location using the useLocation hook
   // const location = useLocation();
@@ -22,6 +24,7 @@ function App() {
   
 
   return (
+    <Provider store={store}>
     <Router>
       {/* Conditionally render the NavigationBar */}
       {/* {showNavigationBar && <NavigationBar />} */}
@@ -33,6 +36,7 @@ function App() {
         <Route path="/Interview" exact element={<Interview />} />
       </Routes>
     </Router>
+    </Provider>
   );
 }
 

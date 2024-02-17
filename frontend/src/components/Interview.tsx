@@ -6,30 +6,35 @@ import VideocamOffIcon from "@mui/icons-material/VideocamOff";
 import MicNoneIcon from "@mui/icons-material/MicNone";
 import MicOffIcon from "@mui/icons-material/MicOff";
 import TestFinished from "./TestFinished.tsx";
-
+import { useSelector, useDispatch } from "react-redux";
+import { getSkills } from "../store/SkillsSlice";
 interface Question {
   questions: string[];
 }
 
 function Interview() {
   const [questions, setQuestions] = useState<Question>();
+  const [response, setResponse] = useState({});
+  const [url, seturl] = useState("");
+  let skills = useSelector((state: RootState) => state.skills);
+  skills = skills.skills;
+  const dispatch = useDispatch();
+
   useEffect(() => {
-    const skills = localStorage.getItem('skills');
     if (skills) {
-      const parsedSkills = JSON.parse(skills);
-      const questionList = parsedSkills.reduce((acc: string[], skill: any) => {
+      let questionList: string[] = [];
+      skills.forEach((skill) => {
         const skillQuestions = QuestionData[skill.skill]?.questions;
         if (skillQuestions) {
-          acc.push(...skillQuestions);
+          questionList.push(...skillQuestions);
         }
-        return acc;
-      }, []);
+      });
       setQuestions({ questions: questionList });
     }
-  }, []);
-
+  }, [skills]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
-  const [isPermissionGranted, setIsPermissionGranted] = useState<boolean>(false);
+  const [isPermissionGranted, setIsPermissionGranted] =
+    useState<boolean>(false);
 
   const [progress, setProgress] = useState<number>(0);
   const [timeLeft, setTimeLeft] = useState<number>(150);
@@ -37,23 +42,57 @@ function Interview() {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isVideoOn, setIsVideoOn] = useState<boolean>(true);
   const [isAudioOn, setIsAudioOn] = useState<boolean>(true);
+  const [mediaRecorder, setMediaRecorder] = useState<any>(null);
+  const [recordedChunks, setRecordedChunks] = useState<any>([]);
 
   const handleStartClick = async () => {
     try {
       const userMediaStream: MediaStream =
         await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       setStream(userMediaStream);
+      const recorder = new MediaRecorder(userMediaStream, {
+        mimeType: "video/webm",
+      });
+
+      recorder.start();
+      setMediaRecorder(recorder);
       setIsPermissionGranted(true);
     } catch (error) {
       console.error("Error accessing media devices:", error);
     }
   };
+  useEffect(() => {
+    if (mediaRecorder) {
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          setRecordedChunks((prevChunks) => [...prevChunks, event.data]);
+        }
+      };
+      console.log(mediaRecorder.state);
+    }
+  }, [mediaRecorder]);
 
   const handleStopClick = () => {
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      setStream(null);
+    if (mediaRecorder) {
+      mediaRecorder.stop();
+      if (recordedChunks.length > 0) {
+        const blob = new Blob(recordedChunks, { type: "video/webm" });
+        const videoUrl = URL.createObjectURL(blob);
+        response[currentQuestionIndex] = {
+          question: questions?.questions[currentQuestionIndex],
+          response: videoUrl,
+        };
+        seturl(videoUrl);
+      }
+      handleStartClick();
     }
+  };
+
+  const goToNextQuestion = () => {
+    handleStopClick();
+    setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
+    setProgress(0);
+    setTimeLeft(150);
   };
 
   useEffect(() => {
@@ -87,15 +126,10 @@ function Interview() {
     if (progress >= 100) {
       goToNextQuestion();
     }
-    return () => { clearInterval(timer); };
+    return () => {
+      clearInterval(timer);
+    };
   }, [isPermissionGranted, progress]);
-
-  const goToNextQuestion = () => {
-    setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
-    setProgress(0);
-    setTimeLeft(150);
-    // Do not stop the media stream when transitioning to the next question
-  };
 
   useEffect(() => {
     if (stream && videoRef.current) {
@@ -132,7 +166,7 @@ function Interview() {
 
   return (
     <>
-      {currentQuestionIndex < (questions?.questions?.length || 0) ?
+      {currentQuestionIndex < (questions?.questions?.length || 0) ? (
         <Box
           style={{
             display: "flex",
@@ -147,7 +181,9 @@ function Interview() {
               <Typography variant="h5">
                 Question {currentQuestionIndex + 1}
               </Typography>
-              <Typography>{questions?.questions[currentQuestionIndex]}</Typography>
+              <Typography>
+                {questions?.questions[currentQuestionIndex]}
+              </Typography>
               <LinearProgress
                 variant="determinate"
                 value={progress}
@@ -197,21 +233,29 @@ function Interview() {
                   )}
                 </div>
               </div>
-              <Button variant="contained" onClick={submitAnswer} disabled={!isVideoOn || !isAudioOn}>
+              <Button
+                variant="contained"
+                onClick={submitAnswer}
+                disabled={!isVideoOn || !isAudioOn}
+              >
                 Submit Answer and Go to Next Question
               </Button>
             </>
           ) : (
             <>
               <Typography variant="h5">Permission Request</Typography>
-              <Typography>Grant permission to access your microphone and camera:</Typography>
-              <Button variant="contained" onClick={handleStartClick}>Grant Permission</Button>
+              <Typography>
+                Grant permission to access your microphone and camera:
+              </Typography>
+              <Button variant="contained" onClick={handleStartClick}>
+                Grant Permission
+              </Button>
             </>
           )}
         </Box>
-        :
+      ) : (
         <TestFinished />
-      }
+      )}
     </>
   );
 }
