@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React from "react";
 import {
   Box,
   TextField,
@@ -11,17 +11,14 @@ import {
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useSelector, useDispatch } from "react-redux";
-import { setSkills } from "../store/SkillsSlice";
+import { setSkills } from "../store";
 import { useNavigate } from "react-router-dom";
 
-function SkillInput() {
+const Home = () => {
   const navigate = useNavigate();
-  let skillState = useSelector((state) => state.skills);
-  let skill = skillState.skills;
-  if (skill.length == 0) skill = [{ skill: "", type: "" }];
   const dispatch = useDispatch();
-  const [skills, setSkillsU] = useState([...skill]);
-  const isDisabled = useRef(true);
+  const { skills } = useSelector((state) => state.interview);
+
   const skillSuggestions = [
     "React",
     "Node.js",
@@ -31,92 +28,75 @@ function SkillInput() {
     "C++",
     "Data Structures",
     "Algorithms",
+    "Database Management",
   ];
 
   const addSkillInput = () => {
     if (skills.length < 5) {
-      setSkillsU((prevSkills) => [...prevSkills, { skill: "", type: "" }]);
+      dispatch(setSkills([...skills, { title: "", type: "" }]));
     }
-    checkDisabled();
   };
 
   const checkDisabled = () => {
-    const isDisable =
-      skills.some((skill) => skill.skill === "" || skill.type === "") ||
-      skills.length === 0;
-    isDisabled.current = isDisable;
+    return (
+      skills.some((skill) => !skill.title || !skill.type) || skills.length === 0
+    );
   };
 
   const handleSkillChange = (index, key, value) => {
     const updatedSkills = [...skills];
     updatedSkills[index][key] = value;
-    setSkillsU(updatedSkills);
-    console.log(updatedSkills);
-    checkDisabled();
+    dispatch(setSkills(updatedSkills));
   };
 
   const deleteSkillRow = (index) => {
-    const updatedSkills = [...skills];
-    updatedSkills.splice(index, 1);
-    setSkillsU(updatedSkills);
+    const updatedSkills = skills.filter((_, i) => i !== index);
+    dispatch(setSkills(updatedSkills));
   };
 
-  const startInterview = () => {
-    dispatch(setSkills(skills));
+  const startInterview = async () => {
     navigate("/interview");
   };
 
   return (
     <Box
-      style={{
+      sx={{
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: "24px",
-        padding: "24px",
+        gap: 3,
+        p: 3,
       }}
     >
-      <Typography
-        variant="subtitle1"
-        style={{ fontSize: "32px", fontWeight: "bold" }}
-      >
-        Add your top skills
+      <Typography variant="h5" fontWeight="bold">
+        Add Your Top Skills
       </Typography>
       <Typography variant="body2">
-        Add your top skills and make sure to accurately rate yourself on each
-        skill. Choose specific skills (ex: React, Node.js, Javascript, Python,
-        etc).
+        Add your top skills and accurately rate yourself on each skill.
       </Typography>
 
-      <Box
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "10px",
-          marginTop: "20px",
-        }}
-      >
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
-            marginBottom: "10px",
+            marginBottom: 1,
           }}
         >
-          <Typography>Enter main skills</Typography>
-          <Typography>Rate yourself</Typography>
+          <Typography>Enter Main Skills</Typography>
+          <Typography>Rate Yourself</Typography>
         </div>
+
         {skills.map((skill, index) => (
           <div
             key={index}
-            style={{ display: "flex", alignItems: "center", gap: "10px" }}
+            style={{ display: "flex", alignItems: "center", gap: 2 }}
           >
             <Autocomplete
               options={skillSuggestions}
-              value={skill.skill}
-              style={{ width: "300px" }}
+              value={skill.title}
               onChange={(event, newValue) =>
-                handleSkillChange(index, "skill", newValue)
+                handleSkillChange(index, "title", newValue)
               }
               renderInput={(params) => (
                 <TextField
@@ -125,13 +105,14 @@ function SkillInput() {
                   variant="outlined"
                 />
               )}
+              sx={{ width: 300 }}
               fullWidth
             />
             <Select
               value={skill.type}
               onChange={(e) => handleSkillChange(index, "type", e.target.value)}
               variant="outlined"
-              style={{ width: "150px" }}
+              sx={{ width: 150 }}
             >
               <MenuItem value="Junior">Junior</MenuItem>
               <MenuItem value="Mid-level">Mid-level</MenuItem>
@@ -150,28 +131,32 @@ function SkillInput() {
       <Button
         variant="contained"
         onClick={addSkillInput}
-        style={{ marginTop: "20px" }}
+        sx={{ mt: 2 }}
+        disabled={skills.length >= 5}
       >
         Add Skill
       </Button>
+
       <Button
         variant="contained"
         onClick={startInterview}
-        style={{ marginTop: "20px" }}
-        disabled={isDisabled.current}
+        sx={{ mt: 2 }}
+        disabled={checkDisabled()}
       >
         Start Interview
       </Button>
+
       {skills.length === 5 && (
         <Typography variant="body2" color="error">
           You can add a maximum of 5 top skills.
         </Typography>
       )}
+
       <Typography variant="body2">
-        Note: please do not refresh the page or you'll lose the data.
+        Note: Please do not refresh the page or you'll lose the data.
       </Typography>
     </Box>
   );
-}
+};
 
-export default SkillInput;
+export default Home;

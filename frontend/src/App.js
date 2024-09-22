@@ -1,42 +1,50 @@
-import React, { useState,useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
-import SignIn from './components/SignIn.tsx';
-import SignUp from './components/SignUp.tsx';
-import Home from './components/Home.tsx';
-import NavigationBar from './components/NavigationBar.tsx';
-import Interview from './components/Interview.tsx';
-import store from './store/ConfigureStore.js';
-import { Provider } from 'react-redux'
+import React, { useState, useEffect } from "react";
+import { BrowserRouter, Routes, Outlet, Route } from "react-router-dom";
+import SignIn from "./pages/SignIn";
+import Home from "./pages/Home";
+import Answers from "./pages/Answers";
+import Interview from "./pages/Interview";
+import store from "./store";
+import { Provider } from "react-redux";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ErrorModal, LoadingModal } from "./components/Modal";
+import { GuestRoute, ProtectedRoute } from "./components/RouteGuards";
 function App() {
-  // Get the current location using the useLocation hook
-  // const location = useLocation();
-  // const [showNavigationBar,setshowNavigationBar]=useState();
-
-  // // Define an array of paths where the NavigationBar should not be shown
-  // const hiddenPaths = ['/SignIn', '/SignUp'];
-
-  // useEffect(()=>{
-  //   // Check if the current path is in the hiddenPaths array
-  //   const x = !hiddenPaths.includes(location.pathname);
-  //   setshowNavigationBar(x);
-  // },[location.pathname])
-  
-  
+  const queryClient = new QueryClient();
 
   return (
-    <Provider store={store}>
-    <Router>
-      {/* Conditionally render the NavigationBar */}
-      {/* {showNavigationBar && <NavigationBar />} */}
-      
-      <Routes>
-        <Route path="/SignIn" element={<SignIn />} />
-        <Route path="/SignUp" element={<SignUp />} />
-        <Route path="/" exact element={<Home />} />
-        <Route path="/Interview" exact element={<Interview />} />
-      </Routes>
-    </Router>
-    </Provider>
+    <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <Provider store={store}>
+          <LoadingModal />
+          <ErrorModal />
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <GuestRoute>
+                  <Outlet />
+                </GuestRoute>
+              }
+            >
+              <Route path="/login" index element={<SignIn />} />
+            </Route>
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Outlet />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/home" element={<Home />} />
+              <Route path="/interview" element={<Interview />} />
+              <Route path="/answers" element={<Answers />} />
+            </Route>
+          </Routes>
+        </Provider>
+      </QueryClientProvider>
+    </BrowserRouter>
   );
 }
 

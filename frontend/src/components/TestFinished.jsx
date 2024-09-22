@@ -2,15 +2,21 @@ import React from "react";
 import { Box, Button, Typography } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import HomeIcon from "@mui/icons-material/Home";
+import { useNavigate } from "react-router-dom";
 
-function TestFinished() {
+const TestFinished = () => {
+  const navigate = useNavigate();
+
+  const handleNavigateToAnswerPage = () => {
+    navigate("/Answers");
+  };
 
   return (
     <Box
-      style={{
+      sx={{
         display: "flex",
         justifyContent: "center",
-        height:'100vh',
+        height: "100vh",
         flexDirection: "column",
         alignItems: "center",
         gap: "24px",
@@ -19,16 +25,18 @@ function TestFinished() {
     >
       <CheckCircleIcon sx={{ fontSize: 100, color: "green" }} />
       <Typography variant="h5">Congratulations!</Typography>
-      <Typography variant="body1">You have successfully completed the test.</Typography>
+      <Typography variant="body1">
+        You have successfully completed the test.
+      </Typography>
       <Button
         variant="contained"
-        onClick={() => (window.location.href = "/")}
+        onClick={handleNavigateToAnswerPage}
         startIcon={<HomeIcon />}
       >
-        Go to Home
+        Check Correct Answers
       </Button>
     </Box>
   );
-}
+};
 
 export default TestFinished;
